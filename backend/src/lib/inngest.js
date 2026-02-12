@@ -2,7 +2,7 @@ import {Inngest} from 'inngest'
 import { connectDB } from './db.js'
 import User from '../models/User.js'
 
-// Create a client to send and receive events
+// Create a client to send and receive events   
 export const inngest = new Inngest({ id: "talentIQ" });
 
 const syncUser = inngest.createFunction(
@@ -21,6 +21,7 @@ const syncUser = inngest.createFunction(
         }
 
         await User.create(newUser)
+
     }
 )
 
@@ -36,4 +37,4 @@ const deleteUserFromDB = inngest.createFunction(
     }
 )
 
-export const functions = {syncUser, deleteUserFromDB}
+export const functions = [syncUser, deleteUserFromDB]
