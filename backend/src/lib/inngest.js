@@ -33,6 +33,7 @@ const syncUser = inngest.createFunction(
   }
 );
 
+
 const deleteUserFromDB = inngest.createFunction(
   { id: "delete-user-from-db" },
   { event: "user.deleted" },  //clerk/user.deleted
