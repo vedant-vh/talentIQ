@@ -3,7 +3,7 @@ import { connectDB } from "./db.js";
 import User from "../models/User.js";
 //import { deleteStreamUser, upsertStreamUser } from "./stream.js";
 
-export const inngest = new Inngest({ id: "talent-iq" });
+export const inngest = new Inngest({ id: "talentIQ" });
 
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
@@ -48,3 +48,5 @@ const deleteUserFromDB = inngest.createFunction(
 );
 
 export const functions = [syncUser, deleteUserFromDB];
+
+
