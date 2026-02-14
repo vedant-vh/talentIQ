@@ -7,7 +7,7 @@ export const inngest = new Inngest({ id: "talent-iq" });
 
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
-  { event: "clerk/user.created" }, //clerk/user.created
+  { event: "clerk/user.created" },   //clerk/user.created
   async ({ event }) => {
     await connectDB();
 
@@ -34,11 +34,9 @@ const syncUser = inngest.createFunction(
   }
 );
 
-
-
 const deleteUserFromDB = inngest.createFunction(
   { id: "delete-user-from-db" },
-  { event: "clerk/user.deleted" },  //clerk/user.deleted
+  { event: "clerk/user.deleted" },    //clerk/user.deleted
   async ({ event }) => {
     await connectDB();
 
@@ -50,4 +48,3 @@ const deleteUserFromDB = inngest.createFunction(
 );
 
 export const functions = [syncUser, deleteUserFromDB];
-
