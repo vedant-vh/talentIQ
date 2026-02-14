@@ -3,12 +3,11 @@ import { connectDB } from "./db.js";
 import User from "../models/User.js";
 import { deleteStreamUser, upsertStreamUser } from "./stream.js";
 
-
 export const inngest = new Inngest({ id: "talent-iq" });
 
 const syncUser = inngest.createFunction(
   { id: "sync-user" },
-  { event: "clerk/user.created" },
+  { event: "user.created" }, //clerk/user.created
   async ({ event }) => {
     await connectDB();
 
@@ -28,6 +27,9 @@ const syncUser = inngest.createFunction(
       name: newUser.name,
       image: newUser.profileImage,
     });
+
+    console.log("Clerk event received:", event.data);
+
   }
 );
 
