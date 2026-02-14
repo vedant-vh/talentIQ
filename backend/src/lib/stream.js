@@ -21,6 +21,7 @@ export const upsertStreamUser = async (userData) => {
   }
 };
 
+
 export const deleteStreamUser = async (userId) => {
   try {
     await chatClient.deleteUser(userId);
