@@ -21,7 +21,7 @@ const syncUser = inngest.createFunction(
     };
 
     await User.create(newUser);
-    
+
 
     // await upsertStreamUser({
     //   id: newUser.clerkId.toString(),
@@ -49,3 +49,4 @@ const deleteUserFromDB = inngest.createFunction(
 );
 
 export const functions = [syncUser, deleteUserFromDB];
+
