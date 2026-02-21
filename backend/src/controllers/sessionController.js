@@ -295,13 +295,13 @@ export async function joinSession(req, res) {
       console.error("Stream channel update failed:", streamError);
 
       // Rollback participant assignment if Stream fails
-      await Session.findByIdAndUpdate(id, {
-        $set: { participant: null },
-      });
+      try {
+        await Session.findByIdAndUpdate(id, { $set: { participant: null } });
+      } catch (rollbackError) {
+        console.error("Rollback failed — session may be stuck as full:", rollbackError);
+      }
 
-      return res.status(500).json({
-        message: "Failed to join session services",
-      });
+      return res.status(500).json({ message: "Failed to join session services" });
     }
 
     return res.status(200).json({ session });
@@ -324,7 +324,9 @@ export async function endSession(req, res) {
        return res.status(400).json({ message: "Invalid session id" });
      }
 
-    const session = await Session.findById(id);
+    const session = await Session.findById(id)
+      .populate("host", "name email profileImage clerkId")
+      .populate("participant", "name email profileImage clerkId");
 
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
