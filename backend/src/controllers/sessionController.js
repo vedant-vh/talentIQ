@@ -315,18 +315,78 @@ export async function joinSession(req, res) {
 }
 
 
+// export async function endSession(req, res) {
+//   try {
+//     const { id } = req.params;
+//     const userId = req.user._id;
+
+//      if (!mongoose.Types.ObjectId.isValid(id)) {
+//        return res.status(400).json({ message: "Invalid session id" });
+//      }
+
+//     const session = await Session.findById(id)
+//       .populate("host", "name email profileImage clerkId")
+//       .populate("participant", "name email profileImage clerkId");
+
+//     if (!session) {
+//       return res.status(404).json({ message: "Session not found" });
+//     }
+
+//     // Only host can end
+//     if (session.host.toString() !== userId.toString()) {
+//       return res.status(403).json({
+//         message: "Only host can end the session",
+//       });
+//     }
+
+//     if (session.status === "completed") {
+//       return res.status(400).json({
+//         message: "Session is already completed",
+//       });
+//     }
+
+//     // 🔹 Try deleting Stream resources first
+//     try {
+//       const call = streamClient.video.call("default", session.callId);
+//       await call.delete({ hard: true });
+
+//       const channel = chatClient.channel("messaging", session.callId);
+//       await channel.delete();
+
+//     } catch (streamError) {
+//       console.error("Stream cleanup failed:", streamError);
+//       // Do NOT stop execution
+//     }
+
+//     // 🔹 Mark session completed
+//     session.status = "completed";
+//     await session.save();
+
+//     return res.status(200).json({
+//       session,
+//       message: "Session ended successfully",
+//     });
+
+//   } catch (error) {
+//     console.error("Error in endSession controller:", error);
+//     return res.status(500).json({
+//       message: "Internal server error",
+//     });
+//   }
+// }
+
 export async function endSession(req, res) {
   try {
     const { id } = req.params;
     const userId = req.user._id;
 
-     if (!mongoose.Types.ObjectId.isValid(id)) {
-       return res.status(400).json({ message: "Invalid session id" });
-     }
+    // Validate Mongo ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid session id" });
+    }
 
-    const session = await Session.findById(id)
-      .populate("host", "name email profileImage clerkId")
-      .populate("participant", "name email profileImage clerkId");
+    // Fetch without populate (for faster auth check)
+    const session = await Session.findById(id);
 
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
@@ -352,15 +412,18 @@ export async function endSession(req, res) {
 
       const channel = chatClient.channel("messaging", session.callId);
       await channel.delete();
-
     } catch (streamError) {
       console.error("Stream cleanup failed:", streamError);
-      // Do NOT stop execution
+      // Continue execution even if Stream fails
     }
 
-    // 🔹 Mark session completed
+    // Mark session completed
     session.status = "completed";
     await session.save();
+
+    // Populate only before returning response
+    await session.populate("host", "name email profileImage clerkId");
+    await session.populate("participant", "name email profileImage clerkId");
 
     return res.status(200).json({
       session,
@@ -374,5 +437,7 @@ export async function endSession(req, res) {
     });
   }
 }
+
+
 
 //can use express-async-handler for larger codebases
