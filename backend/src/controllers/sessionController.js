@@ -1,4 +1,5 @@
 import Session from '../models/Session.js'
+import mongoose from 'mongoose'
 import {chatClient, streamClient} from '../lib/stream.js'
 
 
@@ -162,15 +163,16 @@ export async function getMyRecentSessions(req,res) {
 export async function getSessionById(req,res) {
     try {
         const {id} = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid session id" });
+        }
         const session = await Session.findById(id)
             .populate("host", "name email profileImage clerkId")
             .populate("participant", "name email profileImage clerkId");
         
         if (!session) return res.status(404).json({message: "Session not found"});
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ message: "Invalid session id" });
-        }
         
         res.status(200).json({session})    
             
@@ -181,32 +183,32 @@ export async function getSessionById(req,res) {
     }
 }
 
-export async function joinSession(req,res) {
-    try {
-        const {id} = req.params;
-        const userId = req.user._id;
-        const clerkId = req.user.clerkId;
+// export async function joinSession(req,res) {
+//     try {
+//         const {id} = req.params;
+//         const userId = req.user._id;
+//         const clerkId = req.user.clerkId;
 
-        const session = await Session.findById(id)
+//         const session = await Session.findById(id)
 
-        if (!session) return res.status(404).json({message: "Session not found"});
+//         if (!session) return res.status(404).json({message: "Session not found"});
 
-        //check if session is already full (2 people)
-        if (session.participant) return res.status(400).json({message: "Session is full"});
+//         //check if session is already full (2 people)
+//         if (session.participant) return res.status(400).json({message: "Session is full"});
 
-        session.participant = userId;
-        await session.save();
+//         session.participant = userId;
+//         await session.save();
 
-        const channel = chatClient.channel("messaging", session.callId)
-        await channel.addMembers([clerkId])
+//         const channel = chatClient.channel("messaging", session.callId)
+//         await channel.addMembers([clerkId])
 
-        res.status(200).json({session})
-    } catch (error) {
-        console.log("Error in joinSession controller: ", error.message);
-        res.status(500).json({message: "Internal Server error"});
+//         res.status(200).json({session})
+//     } catch (error) {
+//         console.log("Error in joinSession controller: ", error.message);
+//         res.status(500).json({message: "Internal Server error"});
         
-    }
-}
+//     }
+// }
 
 // export async function endSession(req,res) {
 //     try {
@@ -246,6 +248,69 @@ export async function joinSession(req,res) {
         
 //     }
 // }
+
+export async function joinSession(req, res) {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const clerkId = req.user.clerkId;
+
+    // Validate Mongo ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid session id",
+      });
+    }
+
+    // Atomic update:
+    // - Session must exist
+    // - Must be active
+    // - Must not already have participant
+    // - Host cannot join as participant
+    const session = await Session.findOneAndUpdate(
+      {
+        _id: id,
+        status: "active",
+        participant: null,
+        host: { $ne: userId },
+      },
+      { $set: { participant: userId } },
+      { new: true }
+    );
+
+    if (!session) {
+      return res.status(409).json({
+        message:
+          "Session is full, inactive, not found, or host cannot join",
+      });
+    }
+
+    // Add participant to Stream chat channel
+    try {
+      const channel = chatClient.channel("messaging", session.callId);
+      await channel.addMembers([clerkId]);
+    } catch (streamError) {
+      console.error("Stream channel update failed:", streamError);
+
+      // Rollback participant assignment if Stream fails
+      await Session.findByIdAndUpdate(id, {
+        $set: { participant: null },
+      });
+
+      return res.status(500).json({
+        message: "Failed to join session services",
+      });
+    }
+
+    return res.status(200).json({ session });
+
+  } catch (error) {
+    console.error("Error in joinSession controller:", error);
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
+  }
+}
 
 
 export async function endSession(req, res) {
