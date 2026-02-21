@@ -40,7 +40,7 @@ app.get("/qwe", (req,res) => {
 
 
 app.use("/api/chat", chatRoutes)
-app.use("/api/chat", sessionRoutes)
+app.use("/api/sessions", sessionRoutes)
 
 
 // make app ready for deployment
