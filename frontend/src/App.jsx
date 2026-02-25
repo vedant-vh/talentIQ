@@ -6,7 +6,10 @@ import ProblemsPage from './pages/ProblemsPage'
 
 function App() {
 
-  const {isSignedIn} = useUser()
+  // const {isSignedIn} = useUser()
+  const { isLoaded, isSignedIn } = useUser()
+
+  if (!isLoaded) return null // or a loading spinner
 
   return (
 
@@ -14,7 +17,7 @@ function App() {
       <Routes>
 
         <Route path="/" element={<HomePage />} />
-        <Route path="/problems" element={isSignedIn ? <ProblemsPage /> : <Navigate to={"/"}/>} />
+        <Route path="/problems" element={isSignedIn ? <ProblemsPage /> : <Navigate to="/" />} />
         
       </Routes>
 
